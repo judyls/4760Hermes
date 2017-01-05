@@ -1,0 +1,34 @@
+<!-- HTML generated using hilite.me --><div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #888888">/*</span>
+<span style="color: #888888"> * File:   config.h</span>
+<span style="color: #888888"> * Author: Judy Stephen and John Draikiwicz</span>
+<span style="color: #888888"> * Modified from file by Syed Tahmid Mahbub and Bruce Land </span>
+<span style="color: #888888"> * Last Modified December 6, 2016</span>
+<span style="color: #888888"> */</span>
+
+<span style="color: #557799">#ifndef CONFIG_H</span>
+<span style="color: #557799">#define    CONFIG_H</span>
+<span style="color: #557799">#define _SUPPRESS_PLIB_WARNING 1</span>
+<span style="color: #557799">#include &lt;plib.h&gt;</span>
+<span style="color: #557799">#include &lt;stdio.h&gt;  </span><span style="color: #888888">// used for serial</span>
+
+<span style="color: #888888">//=============================================================</span>
+<span style="color: #888888">// 40 MHz</span>
+<span style="color: #557799">#pragma config FNOSC = FRCPLL, POSCMOD = OFF</span>
+<span style="color: #557799">#pragma config FPLLIDIV = DIV_2, FPLLMUL = MUL_20 </span><span style="color: #888888">//40 MHz</span>
+<span style="color: #557799">#pragma config FPBDIV = DIV_1, FPLLODIV = DIV_2 </span><span style="color: #888888">// PB 40 MHz</span>
+<span style="color: #557799">#pragma config FWDTEN = OFF,  FSOSCEN = OFF, JTAGEN = OFF</span>
+
+<span style="color: #888888">//==============================================================</span>
+<span style="color: #557799">#define use_uart_serial  </span><span style="color: #888888">//pin 21 and pin 22 are used by the uart</span>
+<span style="color: #557799">#define BAUDRATE 9600    </span><span style="color: #888888">// must match PC terminal emulator setting</span>
+
+<span style="color: #888888">/////////////////////////////////</span>
+<span style="color: #888888">// set up clock parameters</span>
+<span style="color: #888888">// system cpu clock</span>
+<span style="color: #557799">#define sys_clock 40000000</span>
+
+<span style="color: #888888">// sys_clock/FPBDIV</span>
+<span style="color: #557799">#define pb_clock sys_clock </span><span style="color: #888888">// divide by one in this case</span>
+
+<span style="color: #557799">#endif </span><span style="color: #888888">/* CONFIG_H */</span><span style="color: #557799"></span>
+</pre></div>

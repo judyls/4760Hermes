@@ -1,0 +1,68 @@
+<!-- HTML generated using hilite.me --><div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #888888">/*</span>
+<span style="color: #888888"> * File:   motor.c</span>
+<span style="color: #888888"> * Author: Judy Stephen (jls633), John Draikiwicz (jwd94)</span>
+<span style="color: #888888"> * Contains code to control motors on the robot</span>
+<span style="color: #888888"> * </span>
+<span style="color: #888888"> * Created on: November 21, 2016</span>
+<span style="color: #888888"> * Last Updated: November 21, 2016</span>
+<span style="color: #888888"> * ECE 4760 Fall 2016</span>
+<span style="color: #888888"> * </span>
+<span style="color: #888888"> * Target PIC:  PIC32MX250F128B</span>
+<span style="color: #888888"> */</span>
+<span style="color: #557799">#include &quot;motor.h&quot;</span>
+
+<span style="color: #333399; font-weight: bold">void</span> <span style="color: #0066BB; font-weight: bold">stop_wheels</span>(<span style="color: #333399; font-weight: bold">void</span>){
+    stop_left_wheel();
+    stop_right_wheel();
+}
+
+<span style="color: #333399; font-weight: bold">void</span> <span style="color: #0066BB; font-weight: bold">straight_fwd_wheels</span>(<span style="color: #333399; font-weight: bold">void</span>) {
+    forward_right_wheel();
+    forward_left_wheel();
+}
+
+<span style="color: #333399; font-weight: bold">void</span> <span style="color: #0066BB; font-weight: bold">straight_bwd_wheels</span>(<span style="color: #333399; font-weight: bold">void</span>) {
+    backward_right_wheel();
+    backward_left_wheel();
+}
+
+<span style="color: #333399; font-weight: bold">void</span> <span style="color: #0066BB; font-weight: bold">stop_left_wheel</span>(<span style="color: #333399; font-weight: bold">void</span>){
+    SetDCOC2PWM(<span style="color: #0000DD; font-weight: bold">0</span>); 
+    SetDCOC1PWM(<span style="color: #0000DD; font-weight: bold">0</span>);
+}
+
+<span style="color: #333399; font-weight: bold">void</span> <span style="color: #0066BB; font-weight: bold">forward_left_wheel</span>(<span style="color: #333399; font-weight: bold">void</span>) {
+    SetDCOC1PWM(<span style="color: #0000DD; font-weight: bold">1500</span>);
+    SetDCOC2PWM(<span style="color: #0000DD; font-weight: bold">0</span>);
+}
+
+<span style="color: #333399; font-weight: bold">void</span> <span style="color: #0066BB; font-weight: bold">backward_left_wheel</span>(<span style="color: #333399; font-weight: bold">void</span>) {
+    SetDCOC1PWM(<span style="color: #0000DD; font-weight: bold">0</span>);
+    SetDCOC2PWM(<span style="color: #0000DD; font-weight: bold">1500</span>);
+}
+
+<span style="color: #333399; font-weight: bold">void</span> <span style="color: #0066BB; font-weight: bold">stop_right_wheel</span>(<span style="color: #333399; font-weight: bold">void</span>) {
+    SetDCOC3PWM(<span style="color: #0000DD; font-weight: bold">0</span>);
+    SetDCOC4PWM(<span style="color: #0000DD; font-weight: bold">0</span>);
+}
+
+<span style="color: #333399; font-weight: bold">void</span> <span style="color: #0066BB; font-weight: bold">forward_right_wheel</span>(<span style="color: #333399; font-weight: bold">void</span>) {
+    SetDCOC3PWM(<span style="color: #0000DD; font-weight: bold">1500</span>);
+    SetDCOC4PWM(<span style="color: #0000DD; font-weight: bold">0</span>);
+}
+
+<span style="color: #333399; font-weight: bold">void</span> <span style="color: #0066BB; font-weight: bold">backward_right_wheel</span>(<span style="color: #333399; font-weight: bold">void</span>) {
+    SetDCOC3PWM(<span style="color: #0000DD; font-weight: bold">0</span>);
+    SetDCOC4PWM(<span style="color: #0000DD; font-weight: bold">1500</span>);
+}
+
+<span style="color: #333399; font-weight: bold">void</span> <span style="color: #0066BB; font-weight: bold">move_left</span>(<span style="color: #333399; font-weight: bold">void</span>) {
+    forward_right_wheel();
+    backward_left_wheel();
+}
+
+<span style="color: #333399; font-weight: bold">void</span> <span style="color: #0066BB; font-weight: bold">move_right</span>(<span style="color: #333399; font-weight: bold">void</span>) {
+    forward_left_wheel();
+    backward_right_wheel();
+}
+</pre></div>

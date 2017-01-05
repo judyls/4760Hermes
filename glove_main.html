@@ -1,0 +1,184 @@
+<!-- HTML generated using hilite.me --><div style="background: #ffffff; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #888888">/*</span>
+<span style="color: #888888"> * File:   main.c</span>
+<span style="color: #888888"> * Author: Judy Stephen (jls633), John Draikiwicz (jwd94)</span>
+<span style="color: #888888"> * Main file for final project </span>
+<span style="color: #888888"> * ECE 4760 Fall 2016</span>
+<span style="color: #888888"> * </span>
+<span style="color: #888888"> * Target PIC:  PIC32MX250F128B</span>
+<span style="color: #888888"> */</span>
+
+<span style="color: #888888">////////////////////////////////////</span>
+<span style="color: #888888">// clock AND protoThreads configure!</span>
+<span style="color: #888888">// You MUST check this file!</span>
+<span style="color: #557799">#include &quot;config.h&quot;</span>
+<span style="color: #888888">// threading library</span>
+<span style="color: #557799">#include &quot;pt_cornell_1_2.h&quot;</span>
+<span style="color: #557799">#include &lt;math.h&gt;</span>
+<span style="color: #888888">////////////////////////////////////</span>
+<span style="color: #888888">// graphics libraries</span>
+<span style="color: #557799">#include &quot;tft_master.h&quot;</span>
+<span style="color: #557799">#include &quot;tft_gfx.h&quot;</span>
+<span style="color: #888888">// need for rand function</span>
+<span style="color: #557799">#include &lt;stdlib.h&gt;</span>
+<span style="color: #557799">#include &lt;stdio.h&gt;</span>
+<span style="color: #888888">////////////////////////////////////</span>
+<span style="color: #557799">#define BAUDRATE 9600</span>
+<span style="color: #888888">// string buffers </span>
+<span style="color: #333399; font-weight: bold">char</span> bufferADC9[<span style="color: #0000DD; font-weight: bold">60</span>];
+<span style="color: #333399; font-weight: bold">char</span> bufferADC11[<span style="color: #0000DD; font-weight: bold">60</span>];
+<span style="color: #333399; font-weight: bold">char</span> bufferADC5[<span style="color: #0000DD; font-weight: bold">60</span>];
+<span style="color: #333399; font-weight: bold">char</span> timeBuffer[<span style="color: #0000DD; font-weight: bold">60</span>];
+<span style="color: #888888">// === thread structures ============================================</span>
+<span style="color: #888888">// thread control structs</span>
+<span style="color: #888888">// note that UART input and output are threads</span>
+<span style="color: #008800; font-weight: bold">static</span> <span style="color: #008800; font-weight: bold">struct</span> pt pt_screen, pt_DMA_output, pt_input, pt_flex, pt_blue;
+
+<span style="color: #888888">// thread rate priorities</span>
+<span style="color: #333399; font-weight: bold">int</span> t1_rate<span style="color: #333333">=</span><span style="color: #0000DD; font-weight: bold">3</span>, t2_rate<span style="color: #333333">=</span><span style="color: #0000DD; font-weight: bold">3</span>, t3_rate<span style="color: #333333">=</span><span style="color: #0000DD; font-weight: bold">3</span>, t4_rate<span style="color: #333333">=</span><span style="color: #0000DD; font-weight: bold">0</span> ;
+<span style="color: #888888">// turn threads 1 and 2 on/off and set thread timing</span>
+<span style="color: #333399; font-weight: bold">int</span> cntl_blink <span style="color: #333333">=</span> <span style="color: #0000DD; font-weight: bold">1</span> ;
+
+<span style="color: #888888">//ADC Flex Sensor Measurement Variables</span>
+<span style="color: #008800; font-weight: bold">static</span> <span style="color: #008800; font-weight: bold">volatile</span> <span style="color: #333399; font-weight: bold">int</span> adc_9;
+<span style="color: #008800; font-weight: bold">static</span> <span style="color: #008800; font-weight: bold">volatile</span> <span style="color: #333399; font-weight: bold">int</span> adc_11;
+<span style="color: #008800; font-weight: bold">static</span> <span style="color: #008800; font-weight: bold">volatile</span> <span style="color: #333399; font-weight: bold">int</span> adc_5;
+<span style="color: #008800; font-weight: bold">static</span> <span style="color: #333399; font-weight: bold">unsigned</span> <span style="color: #333399; font-weight: bold">int</span> offset;
+<span style="color: #888888">//command to send robot</span>
+<span style="color: #008800; font-weight: bold">volatile</span> <span style="color: #333399; font-weight: bold">char</span> command;
+<span style="color: #888888">//threshold that signifies a flex sensor is bent</span>
+<span style="color: #008800; font-weight: bold">static</span> <span style="color: #333399; font-weight: bold">int</span> flexThreshold <span style="color: #333333">=</span> <span style="color: #0000DD; font-weight: bold">135</span>;
+
+<span style="color: #008800; font-weight: bold">static</span> <span style="color: #0066BB; font-weight: bold">PT_THREAD</span> (protothread_bluetooth(<span style="color: #008800; font-weight: bold">struct</span> pt <span style="color: #333333">*</span>pt))
+{
+    PT_BEGIN(pt);
+      <span style="color: #008800; font-weight: bold">while</span>(<span style="color: #0000DD; font-weight: bold">1</span>) {
+          <span style="color: #888888">//Appends &#39;\r&#39; to command being sent to signify end of data being</span>
+          <span style="color: #888888">//transmitted. Then write this to PT_send_buffer.</span>
+          sprintf(PT_send_buffer, <span style="background-color: #fff0f0">&quot;%c</span><span style="color: #666666; font-weight: bold; background-color: #fff0f0">\r</span><span style="background-color: #fff0f0">&quot;</span>, command);
+          <span style="color: #888888">//Spawn thread to transmit PT_send_buffer over UART to Bluetooth module</span>
+          PT_SPAWN(pt, <span style="color: #333333">&amp;</span>pt_DMA_output, PT_DMA_PutSerialBuffer(<span style="color: #333333">&amp;</span>pt_DMA_output) );
+          <span style="color: #888888">//Wait 500 msecs before transmitting again</span>
+          PT_YIELD_TIME_msec(<span style="color: #0000DD; font-weight: bold">500</span>);
+      } <span style="color: #888888">// END WHILE(1)</span>
+  PT_END(pt);
+} <span style="color: #888888">// user thread</span>
+
+<span style="color: #888888">//======Flex Sensor Thread==============================</span>
+<span style="color: #888888">//Receives values of Flex Sensor from ADC then determines command to</span>
+<span style="color: #888888">//transmit to robot</span>
+<span style="color: #008800; font-weight: bold">static</span> <span style="color: #0066BB; font-weight: bold">PT_THREAD</span> (protothread_flex(<span style="color: #008800; font-weight: bold">struct</span> pt <span style="color: #333333">*</span>pt))
+{
+    PT_BEGIN(pt);
+    <span style="color: #008800; font-weight: bold">while</span>(<span style="color: #0000DD; font-weight: bold">1</span>){
+        offset<span style="color: #333333">=</span><span style="color: #0000DD; font-weight: bold">8</span><span style="color: #333333">*</span>((<span style="color: #333333">~</span>ReadActiveBufferADC10() <span style="color: #333333">&amp;</span> <span style="color: #005588; font-weight: bold">0x01</span>));
+        <span style="color: #888888">//Read ADC Values for the selected pins</span>
+        adc_11<span style="color: #333333">=</span>ReadADC10(<span style="color: #0000DD; font-weight: bold">2</span>);
+        adc_9<span style="color: #333333">=</span>ReadADC10(<span style="color: #0000DD; font-weight: bold">1</span>);
+        adc_5<span style="color: #333333">=</span>ReadADC10(<span style="color: #0000DD; font-weight: bold">0</span>);
+        AcquireADC10();
+
+        <span style="color: #888888">//Command Set for controlling the robot - determine what action</span>
+        <span style="color: #888888">//the robot should take</span>
+        <span style="color: #888888">//all closed</span>
+        <span style="color: #008800; font-weight: bold">if</span> ((adc_11<span style="color: #333333">&lt;</span>flexThreshold)<span style="color: #333333">&amp;&amp;</span>(adc_9<span style="color: #333333">&lt;</span>flexThreshold)<span style="color: #333333">&amp;&amp;</span>(adc_5<span style="color: #333333">&lt;</span>flexThreshold)){
+            command <span style="color: #333333">=</span> <span style="color: #0044DD">&#39;f&#39;</span>;
+        }
+        <span style="color: #888888">//pinkie &amp; ring closed, index extended</span>
+        <span style="color: #008800; font-weight: bold">else</span> <span style="color: #008800; font-weight: bold">if</span> ((adc_9<span style="color: #333333">&lt;</span>flexThreshold)<span style="color: #333333">&amp;&amp;</span>(adc_5<span style="color: #333333">&lt;</span>flexThreshold)<span style="color: #333333">&amp;&amp;</span>(adc_11<span style="color: #333333">&gt;=</span>flexThreshold)){
+            command <span style="color: #333333">=</span> <span style="color: #0044DD">&#39;r&#39;</span>;
+        }
+        <span style="color: #888888">//pinkie &amp; index extended, ring closed</span>
+        <span style="color: #008800; font-weight: bold">else</span> <span style="color: #008800; font-weight: bold">if</span> ((adc_11<span style="color: #333333">&gt;=</span>flexThreshold)<span style="color: #333333">&amp;&amp;</span>(adc_9<span style="color: #333333">&lt;</span>flexThreshold)<span style="color: #333333">&amp;&amp;</span>(adc_5<span style="color: #333333">&gt;=</span>flexThreshold)){
+            command <span style="color: #333333">=</span> <span style="color: #0044DD">&#39;b&#39;</span>;
+        }
+        <span style="color: #888888">//ring &amp; pinkie extended, index closed</span>
+        <span style="color: #008800; font-weight: bold">else</span> <span style="color: #008800; font-weight: bold">if</span> ((adc_5<span style="color: #333333">&gt;=</span>flexThreshold)<span style="color: #333333">&amp;&amp;</span>(adc_9<span style="color: #333333">&gt;=</span>flexThreshold)<span style="color: #333333">&amp;&amp;</span>(adc_11<span style="color: #333333">&lt;</span>flexThreshold)){
+            command <span style="color: #333333">=</span> <span style="color: #0044DD">&#39;l&#39;</span>;
+        }
+        <span style="color: #888888">//all open</span>
+        <span style="color: #008800; font-weight: bold">else</span> <span style="color: #008800; font-weight: bold">if</span> ((adc_5<span style="color: #333333">&gt;=</span>flexThreshold)<span style="color: #333333">&amp;&amp;</span>(adc_9<span style="color: #333333">&gt;=</span>flexThreshold)<span style="color: #333333">&amp;&amp;</span>(adc_11<span style="color: #333333">&gt;=</span>flexThreshold)){
+            command <span style="color: #333333">=</span> <span style="color: #0044DD">&#39;s&#39;</span>;
+        }
+        <span style="color: #888888">//Wait 10 msecs before sampling again</span>
+        PT_YIELD_TIME_msec(<span style="color: #0000DD; font-weight: bold">10</span>);
+    }<span style="color: #888888">//Never Exit While Loop</span>
+    
+    
+PT_END(pt);    
+} <span style="color: #888888">// flex sensor </span>
+
+<span style="color: #888888">// === Main  ======================================================</span>
+<span style="color: #333399; font-weight: bold">void</span> <span style="color: #0066BB; font-weight: bold">main</span>(<span style="color: #333399; font-weight: bold">void</span>) {
+  SYSTEMConfigPerformance(PBCLK);
+
+  <span style="color: #888888">//mPORTBSetPinsDigitalIn(BIT_2);</span>
+
+  ANSELA <span style="color: #333333">=</span> <span style="color: #0000DD; font-weight: bold">0</span>; ANSELB <span style="color: #333333">=</span> <span style="color: #0000DD; font-weight: bold">0</span>;
+
+  <span style="color: #888888">// === setup system wide interrupts  ========</span>
+  INTEnableSystemMultiVectoredInt();
+  
+  <span style="color: #888888">// the ADC ///////////////////////////////////////</span>
+  <span style="color: #888888">// configure and enable the ADC</span>
+  CloseADC10(); <span style="color: #888888">// ensure the ADC is off before setting the configuration</span>
+  mPORTBSetPinsDigitalIn(BIT_4); <span style="color: #888888">//Pin 11</span>
+  <span style="color: #888888">// define setup parameters for OpenADC10</span>
+  <span style="color: #888888">// Turn module on | ouput in integer | trigger mode auto | enable autosample</span>
+  <span style="color: #888888">// ADC_CLK_AUTO -- Internal counter ends sampling and starts conversion (Auto convert)</span>
+  <span style="color: #888888">// ADC_AUTO_SAMPLING_ON -- Sampling begins immediately after last conversion completes; SAMP bit is automatically set</span>
+  <span style="color: #888888">// ADC_AUTO_SAMPLING_OFF -- Sampling begins with AcquireADC10();</span>
+  <span style="color: #FF0000; background-color: #FFAAAA">#</span>define PARAM1  ADC_MODULE_ON <span style="color: #333333">|</span> ADC_FORMAT_INTG16 <span style="color: #333333">|</span> ADC_CLK_AUTO <span style="color: #333333">|</span> ADC_AUTO_SAMPLING_ON <span style="color: #888888">//</span>
+
+  <span style="color: #888888">// define setup parameters for OpenADC10</span>
+  <span style="color: #888888">// ADC ref external  | disable offset test | disable scan mode | do 1 sample | use single buf | alternate mode off</span>
+  <span style="color: #FF0000; background-color: #FFAAAA">#</span>define PARAM2  ADC_VREF_AVDD_AVSS <span style="color: #333333">|</span> ADC_OFFSET_CAL_DISABLE <span style="color: #333333">|</span> ADC_SCAN_ON <span style="color: #333333">|</span> ADC_SAMPLES_PER_INT_3 <span style="color: #333333">|</span> ADC_ALT_BUF_ON <span style="color: #333333">|</span> ADC_ALT_INPUT_OFF
+
+  <span style="color: #888888">// Define setup parameters for OpenADC10</span>
+  <span style="color: #888888">// use peripherial bus clock | set sample time | set ADC clock divider</span>
+  <span style="color: #888888">// ADC_CONV_CLK_Tcy2 means divide CLK_PB by 2 (max speed)</span>
+  <span style="color: #888888">// ADC_SAMPLE_TIME_5 seems to work with a source resistance &lt; 1kohm</span>
+  <span style="color: #FF0000; background-color: #FFAAAA">#</span>define PARAM3 ADC_CONV_CLK_INTERNAL_RC <span style="color: #333333">|</span> ADC_SAMPLE_TIME_12 <span style="color: #888888">//| ADC_CONV_CLK_Tcy2 //ADC_SAMPLE_TIME_15| ADC_CONV_CLK_Tcy2</span>
+
+  <span style="color: #888888">// define setup parameters for OpenADC10</span>
+  <span style="color: #888888">// set AN11 and  as analog inputs</span>
+  <span style="color: #FF0000; background-color: #FFAAAA">#</span>define PARAM4 ENABLE_AN11_ANA <span style="color: #333333">|</span> ENABLE_AN9_ANA <span style="color: #333333">|</span> ENABLE_AN5_ANA
+
+  <span style="color: #888888">// define setup parameters for OpenADC10</span>
+    <span style="color: #888888">// do not assign channels to scan</span>
+    <span style="color: #FF0000; background-color: #FFAAAA">#</span>define PARAM5   SKIP_SCAN_AN0 <span style="color: #333333">|</span> SKIP_SCAN_AN1 <span style="color: #333333">|</span> SKIP_SCAN_AN2 <span style="color: #333333">|</span> SKIP_SCAN_AN3 <span style="color: #333333">|</span> SKIP_SCAN_AN4 <span style="color: #333333">|</span> SKIP_SCAN_AN6 <span style="color: #333333">|</span> SKIP_SCAN_AN7 <span style="color: #333333">|</span> SKIP_SCAN_AN8 <span style="color: #333333">|</span> SKIP_SCAN_AN10 <span style="color: #333333">|</span> SKIP_SCAN_AN12 <span style="color: #333333">|</span> SKIP_SCAN_AN13 <span style="color: #333333">|</span> SKIP_SCAN_AN14 <span style="color: #333333">|</span> SKIP_SCAN_AN15<span style="color: #888888">//~(SKIP_SCAN_AN5|SKIP_SCAN_AN9|SKIP_SCAN_AN11)</span>
+  
+    <span style="color: #888888">// configure to sample AN11 connected to flex sensor</span>
+  SetChanADC10( ADC_CH0_NEG_SAMPLEA_NVREF );<span style="color: #888888">//ADC_CH0_NEG_SAMPLEA_NVREF | ADC_CH0_POS_SAMPLEA_AN11 | ADC_CH0_NEG_SAMPLEB_NVREF | ADC_CH0_POS_SAMPLEB_AN9); // configure to sample AN4 </span>
+  
+  OpenADC10( PARAM1, PARAM2, PARAM3, PARAM4, PARAM5 ); <span style="color: #888888">// configure ADC using the parameters defined above</span>
+
+  EnableADC10(); <span style="color: #888888">// Enable the ADC</span>
+
+
+  <span style="color: #888888">// === config threads ==========</span>
+  <span style="color: #888888">// turns OFF UART support and debugger pin, unless defines are set</span>
+  <span style="color: #888888">// PT_setup() MUST REMAIN HERE AND NOT ELSEWHERE</span>
+  PT_setup();
+  <span style="color: #888888">// init the threads</span>
+  PT_INIT(<span style="color: #333333">&amp;</span>pt_flex);
+  PT_INIT(<span style="color: #333333">&amp;</span>pt_blue);
+
+  <span style="color: #888888">// ===== init the display ==================</span>
+  tft_init_hw();
+  tft_begin();
+  tft_fillScreen(ILI9340_BLACK);
+  <span style="color: #888888">//240x320 vertical display</span>
+  tft_setRotation(<span style="color: #0000DD; font-weight: bold">0</span>); <span style="color: #888888">// Use tft_setRotation(1) for 320x240</span>
+            
+  <span style="color: #888888">// seed random color</span>
+  srand(<span style="color: #0000DD; font-weight: bold">1</span>);
+
+  <span style="color: #888888">// round-robin scheduler for threads</span>
+  <span style="color: #008800; font-weight: bold">while</span> (<span style="color: #0000DD; font-weight: bold">1</span>){
+      PT_SCHEDULE(protothread_flex(<span style="color: #333333">&amp;</span>pt_flex));
+      PT_SCHEDULE(protothread_bluetooth(<span style="color: #333333">&amp;</span>pt_blue));
+      }
+  } <span style="color: #888888">// main</span>
+
+<span style="color: #888888">// === end  ======================================================</span>
+</pre></div>
