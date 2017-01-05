@@ -327,7 +327,7 @@
 
 
                     <p></p>
-                    <img src="img/bluetooth_test.JPG" class="img-responsive img-center" alt="Bluetooth test PuTTY">
+                    <img src="img/bluetooth_test.jpg" class="img-responsive img-center" alt="Bluetooth test PuTTY">
                     <p class="text-center">Bluetooth testing using PuTTY</p>
                     <p>With these two tests it appeared that bluetooth was working and the PIC was transmitting and interpreting UART data properly. However when we tried interfacing two PIC’s rather than a PIC and a terminal that’s where we ran into issues.</p>
 
@@ -339,9 +339,9 @@
 </pre></div>
 
                     <p>Next we observed on the oscilloscope the serial commands that were being transmitted and noticed that it appeared the Bluetooth module was seemingly delaying the ‘\r’ return char by a short but random period of time:</p>
-                    <img src="img/serial_pic1.JPG" class="img-responsive img-center" alt="Serial signal output from glove PIC">
+                    <img src="img/serial_pic1.jpg" class="img-responsive img-center" alt="Serial signal output from glove PIC">
                     <p class="text-center">Serial signal output from glove PIC going to transmit Bluetooth</p>
-                    <img src="img/signal_pic_robot.JPG" class="img-responsive img-center" alt="Serial signal received in robot PIC">
+                    <img src="img/signal_pic_robot.jpg" class="img-responsive img-center" alt="Serial signal received in robot PIC">
                     <p class="text-center">UART Signal Received by robot PIC over bluetooth (NOTE the large delay)</p>
 
                     <p>The true error was discovered when running through the code in debug mode. We observed the value of PT_Term_Buffer, the char array being saved while PT_GetSerialBuffer was running and saw that this was properly updating with each change in command, however cmd - the parsing of PT_term_buffer - was not.The issue was that there was, for an unknown reason, a "\\0" appended to the front of PT_term_buffer, which is null and a terminator for a char array. As a result sscanf saw the end of PT_term_buffer and thus would not update cmd, resulting in no new commands being received. To solve this we simply referenced PT_term_buffer at index 1 in our code instead of the cmd variable. This resulted in the full functionality of our robot.</p>
